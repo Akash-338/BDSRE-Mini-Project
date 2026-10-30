@@ -35,9 +35,9 @@ The initial checks use only the Python standard library. Instructions for the da
 ## Planned deliverables
 
 - Reproducible data generation, ingestion, tuning and benchmark scripts
-- Results notebook and measured before/after results
+- [Results notebook](notebooks/results_analysis.ipynb) and reproducible before/after comparisons
 - Tuning playbook and 3–5 page technical report
 - Data card and evidence for a responsible AI component
 - Three-minute in-class demo
 
-No measurements or privacy guarantees are claimed at this stage.
+See [notebook instructions](notebooks/README.md). Generated benchmark and governance JSON stays in the ignored `data/` directory; regenerate it with the documented commands before running the notebook. No energy/power measurements or privacy guarantees are claimed.

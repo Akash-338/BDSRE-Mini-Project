@@ -1,0 +1,5 @@
+# Optional packages used to execute notebooks/results_analysis.ipynb.
+pandas==3.1.0
+matplotlib==3.11.2
+ipykernel==7.4.0
+nbconvert==7.17.2
