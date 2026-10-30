@@ -123,7 +123,7 @@ class GovernanceCheckTests(unittest.TestCase):
             }), encoding="utf-8")
             result = audit_dataset(batches, provenance_path, ingestion_path)
             self.assertTrue(result["measured"]["overall_passed"], result["findings"])
-            self.assertEqual(Path(result["measured"]["lineage_source_path_used"]), source)
+            self.assertTrue(Path(result["measured"]["lineage_source_path_used"]).samefile(source))
 
 
 if __name__ == "__main__":
