@@ -1,4 +1,4 @@
-name: Python checks
+name: CI
 
 on:
   push:
@@ -8,7 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  unit-tests:
+  ci:
+    name: CI
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
