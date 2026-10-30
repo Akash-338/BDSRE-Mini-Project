@@ -68,6 +68,7 @@ def _copy_layout(
     destination: Path,
     order_by: str | None,
     file_size_bytes: int,
+    query_threads: int,
 ) -> float:
     select = "SELECT * FROM baseline_data"
     if order_by:
@@ -82,7 +83,7 @@ def _copy_layout(
             "PER_THREAD_OUTPUT, FILENAME_PATTERN 'part-{i}.parquet')"
         )
     finally:
-        connection.execute("SET threads = 4")
+        connection.execute(f"SET threads = {query_threads}")
     return time.perf_counter() - started
 
 
@@ -131,7 +132,7 @@ def build_layouts(
         for name, config in variants.items():
             destination = root / name
             destination.mkdir()
-            duration = _copy_layout(connection, destination, config["order_by"], file_size_bytes)
+            duration = _copy_layout(connection, destination, config["order_by"], file_size_bytes, threads)
             files = discover_parquet_files(destination)
             create_parquet_view(connection, files, "optimized_data")
             fingerprint = row_fingerprint(connection, "optimized_data")
