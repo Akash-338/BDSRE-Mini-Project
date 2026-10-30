@@ -4,40 +4,45 @@ Big Data Systems and Responsible AI Engineering project by Akash Kiran Vernekar 
 
 ## Project status
 
-Initial project structure. The TPC-H data generator, simulated ingestion, storage optimizations, benchmarks, energy estimates, and final deliverables are not implemented yet.
+The compaction command is implemented for Parquet layouts and verifies row and query-result preservation. Sorting and Z-order layouts, energy/cost estimates, notebook, report and governance evidence remain project work.
 
-## Planned architecture
+## Architecture
 
 ```mermaid
 flowchart LR
-    A[TPC-H synthetic data] --> B[Simulated batch ingestion]
-    B --> C[Many small files]
-    C --> D[Baseline queries]
-    C --> E[Compaction / sorting / Z-order]
-    E --> F[Optimized queries]
-    D --> G[Results and estimates]
+    A[TPC-H synthetic lineitem] --> B[Micro-batch ingestion]
+    B --> C[Small-file baseline layout]
+    C --> D[Repeatable query benchmark]
+    C --> E[Compaction]
+    E --> F[Compacted layout]
+    D --> G[Measured results and estimates]
     F --> G
-    G --> H[Notebook and report]
+    G --> H[Notebook, report and playbook]
 ```
 
-The storage engine and its Z-order support remain to be selected and validated on Windows. This will be a custom experiment, not an official TPC-H benchmark.
+This is a custom local workload, not an official TPC-H benchmark result.
 
 ## Setup and checks
 
-Install Python 3.11 or later. From the project root run:
+Use Python 3.12 and install the direct dependencies:
 
 ```powershell
+python -m pip install duckdb==2.0.0
 python -m unittest discover -s tests -v
 ```
 
-The initial checks use only the Python standard library. Instructions for the data pipeline will be added when it exists.
+## Compact and compare
 
-## Planned deliverables
+```powershell
+python scripts\compact_parquet.py --input .\data\small-files-100rows-issue4 --output .\data\compacted-256k --results .\data\compaction-256k.json --file-size-bytes 262144 --warmups 1 --repeats 5 --threads 4
+```
 
-- Reproducible data generation, ingestion, tuning and benchmark scripts
-- Results notebook and measured before/after results
+The baseline is preserved. The command records its file layout and raw query timings, writes a separate compacted layout with an approximate file-size target, validates schema/rows/query outputs, and records compaction duration and post-compaction timings. Read [the compaction playbook](docs/compaction-playbook.md) for cache conditions and limitations.
+
+## Project deliverables
+
+- Reproducible generation, ingestion, layout and benchmark scripts
+- Results notebook with actual before-and-after measurements
 - Tuning playbook and 3–5 page technical report
-- Data card and evidence for a responsible AI component
+- Data card and measured governance evidence
 - Three-minute in-class demo
-
-No measurements or privacy guarantees are claimed at this stage.
