@@ -22,18 +22,41 @@ flowchart LR
 
 The storage engine and its Z-order support remain to be selected and validated on Windows. This will be a custom experiment, not an official TPC-H benchmark.
 
-## Setup and checks
+## Windows setup and checks
 
-Install Python 3.11 or 3.12 and Git. In PowerShell, from the project root, create and use a virtual environment:
+This is an initial local setup, not yet a complete reproducible experiment. Git, Python 3.12, and Java 17 are required for the proposed Spark/Delta setup. Direct Python dependencies are listed in `requirements.txt`; compaction and Z-ordering still need end-to-end validation.
+
+### Existing D: setup on Akash's laptop
+
+Use the project checkout at `D:\BDSRE-Mini-Project` for day-to-day work. The separate tools and virtual environment are in `D:\BDSRE-Tools`. The desktop copy is separate and does not sync automatically.
+
+In PowerShell, run this in each new session:
+
+```powershell
+. D:\BDSRE-Tools\activate-project.ps1
+python --version
+python -m pip check
+python -m unittest discover -s tests -v
+```
+
+The helper is machine-specific and lives on D:, not in this repository. It sets Java, Python and temporary/cache paths for that session and changes to the D: checkout. If PowerShell blocks the helper, run `Set-ExecutionPolicy -Scope Process Bypass` in that session before the first command. This does not change the permanent execution policy.
+
+Installed and smoke-tested locally: Python 3.12.10, Java 17, imports of the listed packages, a basic Spark job, and Delta table write/read. Spark reported a Windows temporary-file cleanup warning. TPC-H generation, compaction and Z-ordering have not yet been verified end to end.
+
+### Set up another Windows computer
+
+Install Git, Python 3.12, and a Java 17 JDK. From a PowerShell terminal in the project checkout:
 
 ```powershell
 py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip check
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-If the Python launcher `py` is unavailable, replace `py -3.12` with the full path to a Python 3.12 executable. Alternatively, activate the environment using `.\.venv\Scripts\Activate.ps1`, then run `python -m unittest discover -s tests -v`. The environment is local to each computer and is excluded from Git.
+If `py` is unavailable, use the full path to a Python 3.12 executable. Set `JAVA_HOME` to the JDK directory for Spark. Delta's Java dependencies need network access on their first use. If you require all project data and caches on a specific drive, configure the environment's temporary, pip, Jupyter, Spark/Ivy and Java cache paths for that drive; package installation alone does not guarantee every program uses that drive.
 
-The current checks use only the Python standard library. The planned experiment will also require DuckDB, Jupyter, analysis libraries, and compatible PySpark and Delta Lake versions, plus an appropriate Java JDK. These dependencies and their exact versions are not yet pinned by this project. We will add reproducible installation instructions after validating the stack and its Windows compatibility.
+The virtual environment and generated data are excluded from Git. Full pipeline commands and pinned transitive dependencies will be added after the experiment is implemented and validated.
 
 ## Planned deliverables
 
