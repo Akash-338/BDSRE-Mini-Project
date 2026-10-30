@@ -4,7 +4,7 @@ Big Data Systems and Responsible AI Engineering project by Akash Kiran Vernekar 
 
 ## Project status
 
-Initial project structure. The TPC-H data generator, simulated ingestion, storage optimizations, benchmarks, energy estimates, and final deliverables are not implemented yet.
+The Windows toolchain is reproducible and has a working smoke test. The full TPC-H ingestion and query benchmark pipeline, measured comparisons, notebook, report and demo remain project work.
 
 ## Planned architecture
 
@@ -20,50 +20,46 @@ flowchart LR
     G --> H[Notebook and report]
 ```
 
-Local Spark and Delta Lake are the current candidate stack; the full experiment remains to be implemented and validated. This will be a custom experiment, not an official TPC-H benchmark.
+The experiment uses local DuckDB for TPC-H generation and Spark with Delta Lake for table operations. Results are from a custom workload and are not official TPC-H benchmark results.
 
-## Windows setup and checks
+## Windows setup
 
-This is an initial local setup, not yet a complete reproducible experiment. Git, Python 3.12, and Java 17 are required for the proposed Spark/Delta setup. Direct Python dependencies are listed in `requirements.txt`; a small local compaction and Z-order smoke test has passed, but the complete experiment still needs validation.
+Prerequisites: Git, Python 3.12, and a Java 17 JDK. Open PowerShell in the repository root and choose a tools directory on the desired drive. The script keeps its virtual environment, temporary files, and package cache under `ToolsRoot`.
 
-### Existing D: setup on Akash's laptop
+```powershell
+.\scripts\setup-windows.ps1 -ProjectRoot (Get-Location).Path -ToolsRoot 'D:\BDSRE-Tools'
+. 'D:\BDSRE-Tools\venv\Scripts\Activate.ps1'
+$env:BDSRE_TOOLS_ROOT = 'D:\BDSRE-Tools'
+python -m unittest discover -s tests -v
+python scripts\smoke_test.py
+```
 
-Use the project checkout at `D:\BDSRE-Mini-Project` for day-to-day work. The separate tools and virtual environment are in `D:\BDSRE-Tools`. The former Desktop copy has been removed.
+The setup script checks the Python and Java versions, installs the pinned direct dependencies from `requirements.txt`, and runs `pip check`. It sets per-session Spark, Jupyter, Python and temporary paths. Use the same PowerShell session for subsequent commands. Dependency downloads and Delta's first use require network access. The initial Spark setup may print routine JVM startup messages.
 
-In PowerShell, run this in each new session:
+### Smoke test coverage
+
+The smoke test generates TPC-H lineitem data at scale factor 0.001 and checks its expected 6,005 rows. It then writes a synthetic Delta table in four batches, applies compaction and Z-ordering, and checks that row count and ID sum are unchanged and compaction reduces active files. It is a functional setup check, not a performance benchmark.
+
+On the tested Windows setup, Spark 3.5.7 / Delta Lake 3.3.2 prints a shutdown warning when it cannot delete a temporary copy of a JAR that the JVM still has open. The smoke test exits successfully; data checks pass. This known Windows file-lock behavior does not indicate a failed compaction or Z-order operation. Keep temporary and Ivy cache paths on the tools drive. See [Spark issue SPARK-50628](https://issues.apache.org/jira/browse/SPARK-50628).
+
+### Existing D: setup
+
+Akash's current checkout is `D:\BDSRE-Mini-Project`; its local tools and virtual environment are in `D:\BDSRE-Tools`. In a new PowerShell window, run the local helper, which configures paths for this machine:
 
 ```powershell
 . D:\BDSRE-Tools\activate-project.ps1
-python --version
-python -m pip check
 python -m unittest discover -s tests -v
+python scripts\smoke_test.py
 ```
 
-The helper is machine-specific and lives on D:, not in this repository. It sets Java, Python and temporary/cache paths for that session and changes to the D: checkout. If PowerShell blocks the helper, run `Set-ExecutionPolicy -Scope Process Bypass` in that session before the first command. This does not change the permanent execution policy.
-
-Installed and smoke-tested locally: Python 3.12.10, Java 17, package imports, a basic Spark job, Delta table write/read, compaction and Z-order. A 400-row smoke test reduced four active files to one and preserved the row count and ID sum. This is a functional check, not a performance benchmark. DuckDB TPC-H generation also passed at scale factor 0.001 (6,005 lineitem rows), using an extension cache on D:. The full experiment still needs end-to-end validation. The local activation helper puts the cached Delta jars on the Java classpath to avoid a Windows Spark temporary-jar locking issue; Spark code must still configure the Delta SQL extension and catalog. Do not additionally call configure_spark_with_delta_pip in that local setup, since it may reintroduce the copied-jar cleanup warning. The helper requires the jar files in its configured D: cache.
-
-### Set up another Windows computer
-
-Install Git, Python 3.12, and a Java 17 JDK. From a PowerShell terminal in the project checkout:
-
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-If `py` is unavailable, use the full path to a Python 3.12 executable. Set `JAVA_HOME` to the JDK directory for Spark. Delta's Java dependencies need network access on their first use. If you require all project data and caches on a specific drive, configure the environment's temporary, pip, Jupyter, Spark/Ivy and Java cache paths for that drive; package installation alone does not guarantee every program uses that drive.
-
-The virtual environment and generated data are excluded from Git. Full pipeline commands and pinned transitive dependencies will be added after the experiment is implemented and validated.
+That helper is machine-specific and is not needed on another computer. The checked-in `scripts/setup-windows.ps1` is the teammate setup path.
 
 ## Planned deliverables
 
 - Reproducible data generation, ingestion, tuning and benchmark scripts
-- Results notebook and measured before/after results
+- Results notebook and measured before-and-after results
 - Tuning playbook and 3–5 page technical report
-- Data card and evidence for a responsible AI component
+- Data card and measured evidence for a responsible AI component
 - Three-minute in-class demo
 
-No measurements or privacy guarantees are claimed at this stage.
+No project performance results or privacy guarantees are claimed at this stage.

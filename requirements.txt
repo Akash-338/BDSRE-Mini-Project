@@ -1,5 +1,3 @@
-# Direct dependencies installed for the initial Windows setup.
-# Full pipeline and storage optimization compatibility still require validation.
 duckdb==2.0.0
 pyspark==3.5.7
 delta-spark==3.3.2
