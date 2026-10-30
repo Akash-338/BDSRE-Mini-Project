@@ -4,7 +4,7 @@ Big Data Systems and Responsible AI Engineering project by Akash Kiran Vernekar 
 
 ## Project status
 
-Initial project structure. The TPC-H data generator, simulated ingestion, storage optimizations, benchmarks, energy estimates, and final deliverables are not implemented yet.
+A reproducible TPC-H lineitem generator is implemented. Streaming-style ingestion, storage tuning, query benchmarks, energy estimates, the results notebook, technical report and demo remain project work.
 
 ## Planned architecture
 
@@ -20,24 +20,29 @@ flowchart LR
     G --> H[Notebook and report]
 ```
 
-The storage engine and its Z-order support remain to be selected and validated on Windows. This will be a custom experiment, not an official TPC-H benchmark.
+The storage engine and its Z-order support remain to be selected and validated on Windows. This is a custom experiment, not an official TPC-H benchmark.
 
 ## Setup and checks
 
-Install Python 3.11 or later. From the project root run:
+Use Python 3.12. Install the generator dependency and run the tests:
 
 ```powershell
+python -m pip install duckdb==2.0.0
 python -m unittest discover -s tests -v
 ```
 
-The initial checks use only the Python standard library. Instructions for the data pipeline will be added when it exists.
+## Generate TPC-H lineitem
+
+```powershell
+python scripts\generate_tpch.py --scale-factor 0.001 --output .\data\tpch-sf001
+```
+
+The command creates `lineitem.parquet` and `manifest.json`. Scale factor 0.001 produces 6,005 rows. The generator refuses to overwrite a non-empty output directory. Review [the data card](docs/data-card.md) for provenance, limitations, and applicable terms before redistributing data.
 
 ## Planned deliverables
 
-- Reproducible data generation, ingestion, tuning and benchmark scripts
-- Results notebook and measured before/after results
+- Reproducible ingestion, tuning and benchmark scripts
+- Results notebook with measured before-and-after comparisons
 - Tuning playbook and 3–5 page technical report
-- Data card and evidence for a responsible AI component
+- Data card and measured governance evidence
 - Three-minute in-class demo
-
-No measurements or privacy guarantees are claimed at this stage.
