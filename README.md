@@ -4,7 +4,7 @@ Big Data Systems and Responsible AI Engineering project by Akash Kiran Vernekar 
 
 ## Project status
 
-Initial project structure. The TPC-H data generator, simulated ingestion, storage optimizations, benchmarks, energy estimates, and final deliverables are not implemented yet.
+The project includes synthetic TPC-H lineitem generation and small-file ingestion, query benchmarks, compaction, sorted and custom Morton-key layout comparisons, plus transparent energy and electricity-cost estimation from benchmark timings. Results are generated locally and are not committed as project data.
 
 ## Planned architecture
 
@@ -20,17 +20,27 @@ flowchart LR
     G --> H[Notebook and report]
 ```
 
-The storage engine and its Z-order support remain to be selected and validated on Windows. This will be a custom experiment, not an official TPC-H benchmark.
+DuckDB is the local analytical engine. It has no native Z-order table-layout command, so the experiment uses an explicit custom Morton-key ordering over `l_shipdate` and `l_returnflag`; it is not an official TPC-H benchmark.
 
 ## Setup and checks
 
-Install Python 3.11 or later. From the project root run:
+Install Python 3.11 or later and DuckDB 2.0.0 in the project virtual environment. From the project root run:
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-The initial checks use only the Python standard library. Instructions for the data pipeline will be added when it exists.
+For energy estimates, supply explicit assumed whole-system watts and a hypothetical electricity tariff. Neither is measured by the project.
+
+```powershell
+python scripts/estimate_energy_cost.py `
+  --input data/layout-variants-issue7.json `
+  --output data/energy-estimates-issue8.json `
+  --assumed-system-watts 50 `
+  --electricity-rate-inr-per-kwh 8
+```
+
+Replace the example 50 W and ₹8/kWh scenario inputs with values your report can justify. The estimator records direct cash project spend separately (defaults to the team's reported ₹0) and includes optimization energy and per-query break-even calculations. See [the tuning playbook](docs/tuning-playbook.md).
 
 ## Planned deliverables
 
