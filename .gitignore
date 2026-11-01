@@ -5,5 +5,5 @@ __pycache__/
 .ipynb_checkpoints/
 data/
 results/
-.codex-build/
 .tools/
+.codex-build/
