@@ -109,6 +109,14 @@ def audit_dataset(input_path: Path, provenance_path: Path, ingestion_manifest_pa
 
     provenance = _load_json(provenance_path, "provenance manifest", findings)
     _check_provenance(provenance, findings)
+    # A direct generator-file audit can and should bind the manifest digest to
+    # the exact Parquet bytes being checked. For ingested directories, lineage is
+    # checked below through the ingestion manifest instead.
+    if input_path.is_file() and input_path.suffix.lower() == ".parquet":
+        declared_digest = provenance.get("sha256")
+        if isinstance(declared_digest, str) and SHA256_PATTERN.fullmatch(declared_digest):
+            if sha256_file(input_path).lower() != declared_digest.lower():
+                findings.append("provenance sha256 does not match the input Parquet file")
     file_results = []
     for file in files:
         row: dict[str, Any] = {"path": str(file), "sha256": sha256_file(file)}
