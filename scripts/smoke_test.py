@@ -6,21 +6,29 @@ from pathlib import Path
 import tempfile
 
 import duckdb
-from delta import configure_spark_with_delta_pip
-from delta.tables import DeltaTable
-from pyspark.sql import SparkSession
 
 
 def _sql_path(path: Path) -> str:
     return path.resolve().as_posix().replace("'", "''")
 
 
-def main() -> None:
-    tools_root = Path(os.environ.get("BDSRE_TOOLS_ROOT", ".tools")).expanduser().resolve()
+def new_run_directory(tools_root: Path) -> Path:
+    """Create a unique run directory without touching earlier smoke artifacts."""
+    tools_root = tools_root.expanduser().resolve()
     tools_root.mkdir(parents=True, exist_ok=True)
-    # Keep each Spark/Ivy run isolated. Spark may hold JARs open on Windows,
-    # so never delete an earlier run directory from this script.
-    root = Path(tempfile.mkdtemp(prefix="smoke-", dir=tools_root))
+    return Path(tempfile.mkdtemp(prefix="smoke-", dir=tools_root))
+
+
+def main() -> None:
+    # Import the optional Spark runtime only for the actual integration run.
+    from delta import configure_spark_with_delta_pip
+    from delta.tables import DeltaTable
+    from pyspark.sql import SparkSession
+
+    tools_root = Path(os.environ.get("BDSRE_TOOLS_ROOT", ".tools"))
+    # Spark may hold JARs open on Windows; each run is isolated and no earlier
+    # smoke artifact is deleted.
+    root = new_run_directory(tools_root)
 
     db = duckdb.connect()
     try:
