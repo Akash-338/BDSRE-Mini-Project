@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -50,9 +51,17 @@ def analyze(layouts: dict[str, Any], energy: dict[str, Any], governance: dict[st
                 runs = [float(value) for value in actual["runs_seconds"]]
             except (KeyError, TypeError, ValueError) as exc:
                 raise ValueError(f"layout '{layout_name}' query '{query_name}' has incomplete timings") from exc
-            if median < 0 or any(value < 0 for value in runs) or not runs:
-                raise ValueError(f"layout '{layout_name}' query '{query_name}' has invalid timings")
             baseline_median = float(baseline["summary_seconds"]["median"])
+            if (
+                not math.isfinite(median)
+                or not math.isfinite(baseline_median)
+                or any(not math.isfinite(value) for value in runs)
+                or median < 0
+                or baseline_median < 0
+                or any(value < 0 for value in runs)
+                or not runs
+            ):
+                raise ValueError(f"layout '{layout_name}' query '{query_name}' has invalid timings")
             baseline_hash = baseline.get("result_sha256")
             result_hash = actual.get("result_sha256")
             hash_match = baseline_hash == result_hash if baseline_hash is not None and result_hash is not None else None
@@ -61,6 +70,14 @@ def analyze(layouts: dict[str, Any], energy: dict[str, Any], governance: dict[st
             energy_query = energy_values[layout_name].get("queries", {}).get(query_name)
             if not isinstance(energy_query, dict):
                 raise ValueError(f"energy results are missing query '{layout_name}.{query_name}'")
+            if energy_query.get("result_hashes_match") is False:
+                raise ValueError(f"energy results report mismatched query outputs for '{layout_name}.{query_name}'")
+            energy_baseline_hash = energy_query.get("baseline_result_sha256")
+            if baseline_hash is not None and energy_baseline_hash is not None and energy_baseline_hash != baseline_hash:
+                raise ValueError(f"energy baseline hash does not match layout benchmark for '{layout_name}.{query_name}'")
+            energy_layout_hash = energy_query.get("layout_result_sha256")
+            if result_hash is not None and energy_layout_hash is not None and energy_layout_hash != result_hash:
+                raise ValueError(f"energy layout hash does not match layout benchmark for '{layout_name}.{query_name}'")
             energy_duration = float(energy_query["median_duration_seconds"])
             if abs(energy_duration - median) > max(1e-9, abs(median) * 1e-6):
                 raise ValueError(f"energy timing does not match layout benchmark for '{layout_name}.{query_name}'")
