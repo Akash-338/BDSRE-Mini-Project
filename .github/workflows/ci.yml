@@ -21,3 +21,17 @@ jobs:
         run: python -m pip install duckdb==2.0.0
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+      - name: Configure Java 17 for Spark smoke test
+        if: github.head_ref == 'feat/issue-2-environment' || github.ref == 'refs/heads/feat/issue-2-environment'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Spark smoke dependencies
+        if: github.head_ref == 'feat/issue-2-environment' || github.ref == 'refs/heads/feat/issue-2-environment'
+        run: python -m pip install pyspark==3.5.7 delta-spark==3.3.2
+      - name: Run Spark and Delta smoke test
+        if: github.head_ref == 'feat/issue-2-environment' || github.ref == 'refs/heads/feat/issue-2-environment'
+        env:
+          BDSRE_TOOLS_ROOT: ${{ runner.temp }}/bdsre-smoke-tools
+        run: python scripts/smoke_test.py
