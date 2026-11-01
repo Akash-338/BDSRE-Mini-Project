@@ -66,6 +66,12 @@ class AnalyzeResultsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "governance audit did not pass"):
             analyze(layouts, energy, governance)
 
+    def test_rejects_energy_hash_mismatch(self):
+        layouts, energy, governance = fixture_results()
+        energy["layouts"]["sorted"]["queries"]["scan"]["result_hashes_match"] = False
+        with self.assertRaisesRegex(ValueError, "energy results report mismatched query outputs"):
+            analyze(layouts, energy, governance)
+
     def test_rejects_energy_benchmark_timing_mismatch(self):
         layouts, energy, governance = fixture_results()
         energy["layouts"]["z_ordered"]["queries"]["filter"]["median_duration_seconds"] += 1
