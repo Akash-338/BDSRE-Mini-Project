@@ -126,5 +126,29 @@ class GovernanceCheckTests(unittest.TestCase):
             self.assertTrue(Path(result["measured"]["lineage_source_path_used"]).samefile(source))
 
 
+    def test_detects_direct_input_digest_mismatch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = root / "original.parquet"
+            write_lineitem(original, rows=2)
+            provenance_path = root / "manifest.json"
+            write_generator_manifest(provenance_path, original, 2)
+
+            tampered = root / "tampered.parquet"
+            connection = duckdb.connect()
+            try:
+                connection.execute(
+                    f"COPY (SELECT * REPLACE ('changed'::VARCHAR AS l_comment) "
+                    f"FROM read_parquet('{original.as_posix()}')) "
+                    f"TO '{tampered.as_posix()}' (FORMAT PARQUET)"
+                )
+            finally:
+                connection.close()
+
+            result = audit_dataset(tampered, provenance_path)
+            self.assertFalse(result["measured"]["overall_passed"])
+            self.assertTrue(any("sha256 does not match" in finding for finding in result["findings"]))
+
+
 if __name__ == "__main__":
     unittest.main()
