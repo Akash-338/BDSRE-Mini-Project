@@ -98,6 +98,20 @@ python scripts/layout_variants.py `
 
 The output root and results JSON must be new paths. The script preserves its source and records the baseline plus compacted, sorted, and Morton-ordered layouts, actual file sizes, repeated query timings, optimization time, and equivalence checks. See [the tuning playbook](docs/tuning-playbook.md) for interpretation and limitations.
 
+## Estimate energy and cost
+
+For energy estimates, supply explicit assumed whole-system watts and a hypothetical electricity tariff. Neither is measured by the project.
+
+```powershell
+python scripts/estimate_energy_cost.py `
+  --input data/layout-variants-issue7.json `
+  --output data/energy-estimates-issue8.json `
+  --assumed-system-watts 50 `
+  --electricity-rate-inr-per-kwh 8
+```
+
+Replace the example 50 W and ₹8/kWh scenario inputs with values your report can justify. The estimator records direct cash project spend separately (defaults to the team's reported ₹0) and includes optimization energy and per-query break-even calculations. See [the tuning playbook](docs/tuning-playbook.md).
+
 ## Deliverables
 
 - Reproducible data generation, ingestion, layout and benchmark scripts

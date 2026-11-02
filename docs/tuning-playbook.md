@@ -38,3 +38,22 @@ DuckDB does not provide a native Z-order layout command. The `z_ordered` variant
 The same three queries and settings run against baseline and every layout. The runner checks a row fingerprint and each query's output hash before writing the JSON. Compare actual per-query medians, not only one aggregate. Report file count, total bytes, optimization time, warmup/repeat count, DuckDB version, thread count, platform, and cache policy from the JSON. DuckDB's `FILE_SIZE_BYTES` is an approximate target, so cite actual measured sizes. The OS cache is not flushed; local timings are cache-sensitive and are not cloud-cost measurements.
 
 There are currently no committed benchmark results: run the command on the team's local dataset before quoting performance claims. The compaction/sort step has a one-time cost; include it in the later energy and break-even analysis rather than hiding it.
+
+
+## Estimated energy and electricity cost
+
+Use `scripts/estimate_energy_cost.py` with an Issue #6 compaction JSON or Issue #7 layout comparison JSON. The formula is `Wh = duration_seconds × assumed_average_system_watts / 3600`; hypothetical electricity cost is `kWh × supplied_rate`. Query and optimization durations are measured by the benchmark; watts and tariff are user-supplied assumptions. No laptop power telemetry or meter reading is used. Keep those categories separate in the report.
+
+The estimator reports per-query energy/cost, one-time optimization energy/cost, per-query result-hash equality when available, and break-even count `ceil(one-time optimization Wh / per-query Wh saved)`. A null break-even means the layout did not save energy for that query. A real workload mix needs query-frequency weights. Direct cash spend is a separate input (default ₹0 based on the team's stated no-spend constraint); the tariff calculation is hypothetical, not a bill or cloud cost.
+
+Example only (50 W and ₹8/kWh are scenario assumptions, not measured facts):
+
+```powershell
+python scripts/estimate_energy_cost.py `
+  --input data/layout-variants-issue7.json `
+  --output data/energy-estimates-issue8.json `
+  --assumed-system-watts 50 `
+  --electricity-rate-inr-per-kwh 8
+```
+
+There are no benchmark measurements committed to Git. Generate local result JSON files before quoting performance or energy claims; the repository ignores `data/` by design.
