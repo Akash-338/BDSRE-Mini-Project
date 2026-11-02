@@ -146,23 +146,33 @@ def compact_parquet(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True, help="baseline Parquet file or directory")
-    parser.add_argument("--output", type=Path, required=True, help="new directory for compacted Parquet files")
-    parser.add_argument("--results", type=Path, required=True, help="new JSON path for before/after metrics")
+    parser.add_argument("--output", type=Path, required=True, help="directory for compacted Parquet files")
+    parser.add_argument("--results", type=Path, required=True, help="JSON path for before/after metrics")
     parser.add_argument("--file-size-bytes", type=int, default=256 * 1024, help="approximate target Parquet file size")
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--threads", type=int, default=4)
     args = parser.parse_args()
-    output = compact_parquet(
-        args.input,
-        args.output,
-        args.results,
-        file_size_bytes=args.file_size_bytes,
-        warmups=args.warmups,
-        repeats=args.repeats,
-        threads=args.threads,
-    )
-    print(json.dumps({"results": str(output), "status": "complete"}, indent=2))
+    from output_refresh import refresh_directory, refresh_json
+    output = args.output.expanduser().resolve()
+    results = args.results.expanduser().resolve()
+    source = args.input.expanduser().resolve()
+    if results == output or output in results.parents or results == source or (source.is_dir() and source in results.parents):
+        raise ValueError("results JSON must be outside the input and output directories")
+
+    def build(stage):
+        staged_results = stage.parent / "results.json"
+        compact_parquet(args.input, stage, staged_results, file_size_bytes=args.file_size_bytes,
+                        warmups=args.warmups, repeats=args.repeats, threads=args.threads)
+        return json.loads(staged_results.read_text(encoding="utf-8"))
+
+    payload = refresh_directory(output, build, ("part-*.parquet",), inputs=(args.input,))
+
+    def write(stage):
+        stage.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    refresh_json(results, write)
+    print(json.dumps({"results": str(results), "status": "complete"}, indent=2))
 
 
 if __name__ == "__main__":
