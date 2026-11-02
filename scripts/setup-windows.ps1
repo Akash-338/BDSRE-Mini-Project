@@ -16,7 +16,15 @@ $javaPath = (Resolve-Path -LiteralPath $javaPath).Path
 $javaHome = Split-Path (Split-Path $javaPath -Parent) -Parent
 $version = & $python -c 'import sys; print(sys.version_info.major, sys.version_info.minor, sep=chr(46))'
 if ($version -ne '3.12') { throw "Python 3.12 is required; found $version at $python" }
-$javaVersionOutput = & $javaPath -version 2>&1
+$previousErrorActionPreference = $ErrorActionPreference
+try {
+    $ErrorActionPreference = 'Continue'
+    $javaVersionOutput = & $javaPath -version 2>&1
+    $javaExitCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+if ($javaExitCode -ne 0) { throw "Could not determine Java version from $javaPath (exit code $javaExitCode)" }
 $javaVersion = ($javaVersionOutput | Where-Object { $_ -match 'version "17\.' } | Select-Object -First 1) -join ''
 if ($javaVersion -notmatch '17\.') { throw "Java 17 is required; found $javaVersion at $javaPath" }
 $venv = Join-Path $ToolsRoot 'venv'
