@@ -1,138 +1,81 @@
 # Small Files, Compaction and Energy
 
-Big Data Systems and Responsible AI Engineering project by Akash Kiran Vernekar (PES1UG24AM338) and Anish A Kunder (PES1UG24AM343).
+**Big Data Systems and Responsible AI Engineering** project by Akash Kiran Vernekar (PES1UG24AM338) and Anish A Kunder (PES1UG24AM343).
 
-## Project status
-
-This issue implements sequential micro-batch replay of synthetic TPC-H lineitem Parquet data. It creates small files and writes an ingestion manifest with file sizes, checksums, schema, row counts, and source/output fingerprints. This is a controlled streaming simulation, not a live stream.
+This project measures how many small Parquet files affect local query latency and compares compaction, sorting, and a custom two-column Morton ordering. It also reports transparent, assumption-based energy estimates and a narrow data-governance audit. The run is deliberately small enough for a Windows laptop; it is not a distributed-scale benchmark or live streaming system.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A[Synthetic TPC-H lineitem] --> B[Micro-batch replay]
-    B --> C[Small-file Parquet layout]
-    C --> D[Baseline and optimized queries]
-    D --> E[Notebook, report and tuning playbook]
+    A[DuckDB TPC-H lineitem generator] --> B[100-row sequential micro-batches]
+    B --> C[61-file Parquet baseline]
+    C --> D[Baseline query timings]
+    C --> E[Compaction]
+    C --> F[Sort by ship date and flag]
+    C --> G[Custom Morton ordering]
+    D --> H[Results JSON]
+    E --> H
+    F --> H
+    G --> H
+    H --> I[Energy and cost estimates]
+    C --> J[Schema, provenance, and checksum audit]
+    H --> K[Results notebook and technical report]
+    J --> K
 ```
 
-The project is a custom local workload, not an official TPC-H benchmark. It uses generated benchmark data and does not use real personal records.
+DuckDB runs the local Parquet queries. Its TPC-H extension generates the synthetic `lineitem` sample. DuckDB does not provide native Z-ordering here: the Morton variant interleaves keys for `l_shipdate` and `l_returnflag` and is described as a custom ordering. The study is derived from TPC-H and is not comparable to official TPC-H benchmark results.
 
-## Windows setup
+## Prerequisites and Windows setup
 
-Prerequisites: Git, Python 3.12, and a Java 17 JDK. Open PowerShell in the repository root and choose a tools directory on the desired drive. The script keeps its virtual environment, temporary files, and package cache under `ToolsRoot`.
+- Windows 11, Git, Python 3.12, and Java 17 (the setup smoke test uses Spark and Delta Lake).
+- About 1 GB free disk space for the sample and layout variants.
+- Network access for the first dependency install and the DuckDB TPC-H extension download.
+
+The setup script puts the virtual environment, caches, and temporary Spark files under a separate tools directory. From the repository root in PowerShell:
 
 ```powershell
-.\scripts\setup-windows.ps1 -ProjectRoot (Get-Location).Path -ToolsRoot 'D:\BDSRE-Tools'
-. 'D:\BDSRE-Tools\venv\Scripts\Activate.ps1'
-$env:BDSRE_TOOLS_ROOT = 'D:\BDSRE-Tools'
+$Tools = 'D:\BDSRE-Tools'
+.\scripts\setup-windows.ps1 -ProjectRoot (Get-Location).Path -ToolsRoot $Tools
+& "$Tools\venv\Scripts\Activate.ps1"
+python --version
+python -m pip check
 python -m unittest discover -s tests -v
 python scripts\smoke_test.py
 ```
 
-The setup script checks the Python and Java versions, installs the pinned direct dependencies from `requirements.txt`, and runs `pip check`. It sets per-session Spark, Jupyter, Python and temporary paths. Use the same PowerShell session for subsequent commands. Dependency downloads and Delta's first use require network access. The initial Spark setup may print routine JVM startup messages.
+Choose a different `ToolsRoot` if needed. Keep it outside the repository. The Spark smoke test checks data integrity and compaction/Z-order operations; it configures Delta through the Delta Python package. The benchmark pipeline below uses DuckDB and Parquet.
 
-### Smoke test coverage
+## Reproduce the experiment
 
-The smoke test generates TPC-H lineitem data at scale factor 0.001 and checks its expected 6,005 rows. It then writes a synthetic Delta table in four batches, applies compaction and Z-ordering, and checks that row count and ID sum are unchanged and compaction reduces active files. It is a functional setup check, not a performance benchmark.
-
-On the tested Windows setup, Spark 3.5.7 / Delta Lake 3.3.2 prints a shutdown warning when it cannot delete a temporary copy of a JAR that the JVM still has open. The smoke test exits successfully; data checks pass. This known Windows file-lock behavior does not indicate a failed compaction or Z-order operation. Keep temporary and Ivy cache paths on the tools drive. See [Spark issue SPARK-50628](https://issues.apache.org/jira/browse/SPARK-50628).
-
-### Existing D: setup
-
-Akash's current checkout is `D:\BDSRE-Mini-Project`; its local tools and virtual environment are in `D:\BDSRE-Tools`. In a new PowerShell window, run the local helper, which configures paths for this machine:
+Run these commands from the repository root using the activated environment. Use fresh output paths; scripts do not overwrite existing experiment outputs.
 
 ```powershell
-. D:\BDSRE-Tools\activate-project.ps1
-python -m unittest discover -s tests -v
-python scripts\smoke_test.py
+python scripts\generate_tpch.py --scale-factor 0.001 --output data\tpch-sf001-issue3
+python scripts\ingest_small_files.py --input data\tpch-sf001-issue3\lineitem.parquet --output data\small-files-100rows-issue4 --batch-rows 100
+python scripts\benchmark_queries.py --input data\small-files-100rows-issue4 --output data\benchmark-baseline.json --warmups 1 --repeats 5 --threads 4
+python scripts\layout_variants.py --input data\small-files-100rows-issue4 --output-root data\layout-variants-issue7 --results data\layout-variants-issue7.json --file-size-bytes 262144 --warmups 1 --repeats 5 --threads 4
+python scripts\estimate_energy_cost.py --input data\layout-variants-issue7.json --output data\energy-estimates-issue8.json --assumed-system-watts 50 --electricity-rate-inr-per-kwh 8
+python scripts\governance_check.py --input data\small-files-100rows-issue4 --provenance data\tpch-sf001-issue3\manifest.json --output data\governance-issue9.json
+python -m pip install -r requirements-notebook.txt
+python -m nbconvert --to notebook --execute notebooks\results_analysis.ipynb --output results_analysis.executed.ipynb --output-dir data
 ```
 
-That helper is machine-specific and is not needed on another computer. The checked-in `scripts/setup-windows.ps1` is the teammate setup path.
+The sample is expected to contain 6,005 rows and the 100-row replay should create 61 Parquet files (60 batches of 100 rows and a final batch of 5). Use the generated manifests and result JSON as the authority for each run. The notebook checks query-result hashes, benchmark/energy timing consistency, and the governance audit before presenting its analysis.
 
-## Generate and replay the data
+To run the Spark/Delta environment check separately, use `python scripts\smoke_test.py`. To inspect individual script options, pass `--help`. The simpler compaction-only command is `scripts\compact_parquet.py`; the side-by-side `layout_variants.py` command above records compacted, sorted, and custom Morton layouts in one comparison.
 
-Generate the lineitem source with the project generator:
+## Deliverables and evidence
 
-```powershell
-python scripts\generate_tpch.py --scale-factor 0.001 --output .\data\tpch-sf001-issue3
-```
+- Reproducible scripts: `scripts/`.
+- Unit tests and single Python 3.12 CI workflow: `tests/` and `.github/workflows/ci.yml`.
+- Results notebook: `notebooks/results_analysis.ipynb`.
+- 3-page technical report: `reports/technical-report.docx`.
+- Data card and tuning playbook: `docs/data-card.md` and `docs/tuning-playbook.md`.
+- 180-second demo video with disclosed computer-generated narration, editable slide deck, and timed script: `presentations/`.
 
-Replay it in batches of 100 rows:
+Generated Parquet data, raw JSON, executed notebooks, and virtual environments are excluded from Git. The generator and commands above recreate them. Review the data card for TPC-derived data terms and intended use. The governance audit validates a schema allowlist, provenance, row totals, and checksums; it does not prove that all values are non-sensitive, quantify re-identification risk, or provide a privacy guarantee. No AI model is trained or deployed, so model fairness and model behavior were not evaluated.
 
-```powershell
-python scripts\ingest_small_files.py --input .\data\tpch-sf001-issue3\lineitem.parquet --output .\data\small-files-100rows-issue4 --batch-rows 100
-```
+## Results and limits
 
-The scale 0.001 sample contains 6,005 rows and produces 61 batches at 100 rows per batch. The script refuses to overwrite a non-empty output directory, checks row count, schema and row fingerprints, and writes `ingestion-manifest.json` with each file's byte size and SHA-256. Report the measured file count; do not extrapolate it to millions of files.
-
-See [the tuning playbook](docs/tuning-playbook.md) and [script guide](scripts/README.md) for evidence and limitations. The replay is not a live streaming system.
-
-## Run the baseline query benchmark
-
-```powershell
-python scripts\benchmark_queries.py --input .\data\small-files-100rows-issue4 --output .\data\benchmark-baseline.json --warmups 1 --repeats 5 --threads 4
-```
-
-The input can be one Parquet file or a directory tree of Parquet files with the TPC-H lineitem columns. The output JSON contains raw run timings, result rows and hashes, input/file statistics, and local system details. See [the benchmark protocol](docs/benchmark-protocol.md) for the workload and timing assumptions. The output must be new so an earlier raw result cannot be overwritten.
-
-## Compact and compare
-
-```powershell
-python scripts\compact_parquet.py --input .\data\small-files-100rows-issue4 --output .\data\compacted-256k --results .\data\compaction-256k.json --file-size-bytes 262144 --warmups 1 --repeats 5 --threads 4
-```
-
-The baseline is preserved. The command records its file layout and raw query timings, writes a separate compacted layout with an approximate file-size target, validates schema/rows/query outputs, and records compaction duration and post-compaction timings. Read [the compaction playbook](docs/compaction-playbook.md) for cache conditions and limitations.
-
-## Compare layouts
-
-Generate or ingest the synthetic lineitem data using the existing pipeline scripts, then run the layout comparison against its Parquet output:
-
-```powershell
-python scripts/layout_variants.py `
-  --input data/small-files-100rows-issue4 `
-  --output-root data/layout-variants-issue7 `
-  --results data/layout-variants-issue7.json `
-  --file-size-bytes 262144 --warmups 1 --repeats 5 --threads 4
-```
-
-The output root and results JSON must be new paths. The script preserves its source and records the baseline plus compacted, sorted, and Morton-ordered layouts, actual file sizes, repeated query timings, optimization time, and equivalence checks. See [the tuning playbook](docs/tuning-playbook.md) for interpretation and limitations.
-
-## Estimate energy and cost
-
-For energy estimates, supply explicit assumed whole-system watts and a hypothetical electricity tariff. Neither is measured by the project.
-
-```powershell
-python scripts/estimate_energy_cost.py `
-  --input data/layout-variants-issue7.json `
-  --output data/energy-estimates-issue8.json `
-  --assumed-system-watts 50 `
-  --electricity-rate-inr-per-kwh 8
-```
-
-Replace the example 50 W and ₹8/kWh scenario inputs with values your report can justify. The estimator records direct cash project spend separately (defaults to the team's reported ₹0) and includes optimization energy and per-query break-even calculations. See [the tuning playbook](docs/tuning-playbook.md).
-
-## Narrow data-governance check
-
-The governance checker validates the TPC-H `lineitem` column allowlist, generator provenance fields, observed row count and optional micro-batch manifest checksums. After generating and optionally micro-batching data, run:
-
-```powershell
-python scripts/governance_check.py `
-  --input data/small-files-100rows-issue4 `
-  --provenance data/tpch-sf001-issue3/manifest.json `
-  --output data/governance-issue9.json
-```
-
-The checker discovers `ingestion-manifest.json` in the input directory. A nonzero exit means a check failed; the audit JSON is still written so failures are inspectable. This allowlist detects unexpected field names. It does not prove that values contain no personal information or quantify re-identification risk; see the data card.
-
-## Deliverables
-
-- Reproducible data generation, ingestion, layout and benchmark scripts
-- Results notebook with before-and-after measurements
-- Tuning playbook and technical report
-- Data card and measured governance evidence
-- Three-minute in-class demo
-
-No production-scale, measured-power, or privacy guarantees are claimed.
-
-See [notebook instructions](notebooks/README.md) for reproducible results analysis. Generate the benchmark and governance JSON inputs under the ignored data directory before running the notebook.
+The recorded local run used 6,005 rows, 61 baseline files, one warm-up and five measured repeats per query, DuckDB 2.0.0, Python 3.12, and four query threads. Results and one-time layout costs are in `docs/tuning-playbook.md`. Energy uses an assumed 50 W average system draw and an illustrative INR 8/kWh tariff; no power meter was used. Direct project cash spending was reported as INR 0. The measurements reflect warm local file access, not a cluster, cold-cache behavior, or millions of files.

@@ -1,39 +1,17 @@
-# Ingestion pipeline scripts
+# Pipeline scripts
 
-## Generate synthetic source data
+Run commands from the repository root with the project's Python 3.12 environment active. Each output path should be new.
 
-```powershell
-python scripts\generate_tpch.py --scale-factor 0.001 --output .\data\tpch-sf001-issue3
-```
+| Script | Purpose |
+|---|---|
+| `generate_tpch.py` | Generate synthetic TPC-H `lineitem` Parquet and a provenance manifest. |
+| `ingest_small_files.py` | Replay lineitem rows in sequential micro-batches and write a checksum manifest. |
+| `benchmark_queries.py` | Measure baseline full-scan and filter workloads with raw repeated timings. |
+| `compact_parquet.py` | Compact one Parquet source and compare before/after query results and timings. |
+| `layout_variants.py` | Compare compacted, sorted, and custom Morton-ordered output layouts. |
+| `estimate_energy_cost.py` | Estimate energy and tariff cost from timings and explicit assumptions. |
+| `governance_check.py` | Check an allowlisted schema, generator provenance, row count, and optional ingestion checksums. |
+| `analyze_results.py` | Validate benchmark, energy, and audit JSON consistency for the results notebook. |
+| `smoke_test.py` | Exercise the Spark/Delta setup on a tiny synthetic dataset; creates a unique run directory and configures Delta through the Delta Python package. |
 
-## Simulate micro-batch ingestion
-
-```powershell
-python scripts\ingest_small_files.py --input .\data\tpch-sf001-issue3\lineitem.parquet --output .\data\small-files-100rows-issue4 --batch-rows 100
-```
-
-This is a sequential replay of a Parquet source, not a live stream. One Parquet file is written per batch. The output manifest records the batch size, row counts, schema, individual file sizes and SHA-256 values, aggregate fingerprints and total file-size statistics. The destination must be empty or absent; existing output is preserved and rejected. The script verifies that all source rows are represented in the output before writing the success manifest.
-
-## Compact and compare Parquet layouts
-
-```powershell
-python scripts\compact_parquet.py --input .\data\small-files-100rows-issue4 --output .\data\compacted-256k --results .\data\compaction-256k.json --file-size-bytes 262144 --warmups 1 --repeats 5 --threads 4
-```
-
-The original input is preserved. The script writes a new compacted directory and a separate before/after JSON report. It verifies schema, row fingerprints and query-result hashes before reporting success. Existing output and result paths are refused to prevent accidental overwrite.
-
-
-- `benchmark_utils.py`: shared Parquet discovery, row fingerprint, exact-result checks, and repeated query timing.
-- `layout_variants.py`: writes compacted, sorted, and custom Morton-key ordered Parquet copies and benchmarks the same queries against each.
-
-Run `python scripts/layout_variants.py --help` for options. Input data and generated results belong under the ignored `data/` directory, not in Git.
-
-
-- `estimate_energy_cost.py`: derives explicitly assumed energy and hypothetical electricity costs from Issue #6 or #7 timing results; it does not claim power-meter measurements.
-
-Run `python scripts/estimate_energy_cost.py --help` for options. Input data and generated results belong under the ignored `data/` directory, not in Git.
-
-
-- `governance_check.py`: checks approved synthetic lineitem schema, provenance and optional ingestion-manifest integrity.
-
-Use `python scripts/governance_check.py --help` to see inputs. The audit output belongs in ignored `data/`; it records failed checks as well as passes. A passing schema audit is not a privacy guarantee.
+Use `python scripts/<name>.py --help` for arguments. The governance audit is a narrow control, not a privacy guarantee. Generated Parquet files and result JSON belong in the ignored `data/` directory.
