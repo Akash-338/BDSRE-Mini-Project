@@ -84,6 +84,20 @@ python scripts\compact_parquet.py --input .\data\small-files-100rows-issue4 --ou
 
 The baseline is preserved. The command records its file layout and raw query timings, writes a separate compacted layout with an approximate file-size target, validates schema/rows/query outputs, and records compaction duration and post-compaction timings. Read [the compaction playbook](docs/compaction-playbook.md) for cache conditions and limitations.
 
+## Compare layouts
+
+Generate or ingest the synthetic lineitem data using the existing pipeline scripts, then run the layout comparison against its Parquet output:
+
+```powershell
+python scripts/layout_variants.py `
+  --input data/small-files-100rows-issue4 `
+  --output-root data/layout-variants-issue7 `
+  --results data/layout-variants-issue7.json `
+  --file-size-bytes 262144 --warmups 1 --repeats 5 --threads 4
+```
+
+The output root and results JSON must be new paths. The script preserves its source and records the baseline plus compacted, sorted, and Morton-ordered layouts, actual file sizes, repeated query timings, optimization time, and equivalence checks. See [the tuning playbook](docs/tuning-playbook.md) for interpretation and limitations.
+
 ## Deliverables
 
 - Reproducible data generation, ingestion, layout and benchmark scripts
