@@ -134,3 +134,5 @@ The checker discovers `ingestion-manifest.json` in the input directory. A nonzer
 - Three-minute in-class demo
 
 No production-scale, measured-power, or privacy guarantees are claimed.
+
+See [notebook instructions](notebooks/README.md) for reproducible results analysis. Generate the benchmark and governance JSON inputs under the ignored data directory before running the notebook.
