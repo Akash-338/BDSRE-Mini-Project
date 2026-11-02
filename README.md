@@ -68,6 +68,14 @@ The scale 0.001 sample contains 6,005 rows and produces 61 batches at 100 rows p
 
 See [the tuning playbook](docs/tuning-playbook.md) and [script guide](scripts/README.md) for evidence and limitations. The replay is not a live streaming system.
 
+## Run the baseline query benchmark
+
+```powershell
+python scripts\benchmark_queries.py --input .\data\small-files-100rows-issue4 --output .\data\benchmark-baseline.json --warmups 1 --repeats 5 --threads 4
+```
+
+The input can be one Parquet file or a directory tree of Parquet files with the TPC-H lineitem columns. The output JSON contains raw run timings, result rows and hashes, input/file statistics, and local system details. See [the benchmark protocol](docs/benchmark-protocol.md) for the workload and timing assumptions. The output must be new so an earlier raw result cannot be overwritten.
+
 ## Deliverables
 
 - Reproducible data generation, ingestion, layout and benchmark scripts
