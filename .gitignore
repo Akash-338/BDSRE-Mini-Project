@@ -7,3 +7,4 @@ data/
 results/
 .tools/
 .codex-build/
+.codex-merge-work/
