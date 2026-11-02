@@ -32,3 +32,8 @@ Run `python scripts/layout_variants.py --help` for options. Input data and gener
 - `estimate_energy_cost.py`: derives explicitly assumed energy and hypothetical electricity costs from Issue #6 or #7 timing results; it does not claim power-meter measurements.
 
 Run `python scripts/estimate_energy_cost.py --help` for options. Input data and generated results belong under the ignored `data/` directory, not in Git.
+
+
+- `governance_check.py`: checks approved synthetic lineitem schema, provenance and optional ingestion-manifest integrity.
+
+Use `python scripts/governance_check.py --help` to see inputs. The audit output belongs in ignored `data/`; it records failed checks as well as passes. A passing schema audit is not a privacy guarantee.

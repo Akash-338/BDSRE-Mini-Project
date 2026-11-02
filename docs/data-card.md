@@ -25,3 +25,9 @@ Teach and measure a custom small-file and file-layout workload: micro-batch inge
 - Tests verify the expected schema, scale-0.001 row count, Parquet round-trip, output digest and safe refusal to overwrite a non-empty directory.
 - Scale factor 0.001 is a functional sample, not sufficient for general performance conclusions. Larger scales must be chosen based on available disk and memory.
 - DuckDB's generator may have minor differences from official TPC-H data generation. Record generator/package version and scale factor for every run.
+
+## Governance control and measured evidence
+
+Run `scripts/governance_check.py` with the generated Parquet and generator manifest. It checks the exact column allowlist, required provenance fields, observed row count, and—when an ingestion manifest is present—the source file hash, micro-batch row/schema metadata, and output file checksums. It writes a JSON audit with passed and failed file counts even if a check fails. Unit fixtures cover both compliant and deliberately non-compliant schemas.
+
+The control is narrow: column names and provenance do not reveal whether a field's values are identifying or sensitive, and they do not establish a privacy guarantee or quantify re-identification risk. Generated data provenance and tool versions should be retained when results are shared.

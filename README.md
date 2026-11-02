@@ -112,6 +112,19 @@ python scripts/estimate_energy_cost.py `
 
 Replace the example 50 W and ₹8/kWh scenario inputs with values your report can justify. The estimator records direct cash project spend separately (defaults to the team's reported ₹0) and includes optimization energy and per-query break-even calculations. See [the tuning playbook](docs/tuning-playbook.md).
 
+## Narrow data-governance check
+
+The governance checker validates the TPC-H `lineitem` column allowlist, generator provenance fields, observed row count and optional micro-batch manifest checksums. After generating and optionally micro-batching data, run:
+
+```powershell
+python scripts/governance_check.py `
+  --input data/small-files-100rows-issue4 `
+  --provenance data/tpch-sf001-issue3/manifest.json `
+  --output data/governance-issue9.json
+```
+
+The checker discovers `ingestion-manifest.json` in the input directory. A nonzero exit means a check failed; the audit JSON is still written so failures are inspectable. This allowlist detects unexpected field names. It does not prove that values contain no personal information or quantify re-identification risk; see the data card.
+
 ## Deliverables
 
 - Reproducible data generation, ingestion, layout and benchmark scripts
