@@ -12,6 +12,6 @@ Run commands from the repository root with the project's Python 3.12 environment
 | `estimate_energy_cost.py` | Estimate energy and tariff cost from timings and explicit assumptions. |
 | `governance_check.py` | Check an allowlisted schema, generator provenance, row count, and optional ingestion checksums. |
 | `analyze_results.py` | Validate benchmark, energy, and audit JSON consistency for the results notebook. |
-| `smoke_test.py` | Exercise the Spark/Delta setup on a tiny synthetic dataset; creates a unique run directory and uses direct Delta JARs to avoid Spark Packages temp-copy locks on Windows. |
+| `smoke_test.py` | Exercise the Spark/Delta setup on a tiny synthetic dataset; creates a unique run directory and configures Delta through the Delta Python package. |
 
 Use `python scripts/<name>.py --help` for arguments. The governance audit is a narrow control, not a privacy guarantee. Generated Parquet files and result JSON belong in the ignored `data/` directory.

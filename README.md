@@ -44,7 +44,7 @@ python -m unittest discover -s tests -v
 python scripts\smoke_test.py
 ```
 
-Choose a different `ToolsRoot` if needed. Keep it outside the repository. The Spark smoke test checks data integrity and compaction/Z-order operations; it uses direct Delta JAR classpaths to avoid copying locked JARs into Spark temporary folders. The benchmark pipeline below uses DuckDB and Parquet.
+Choose a different `ToolsRoot` if needed. Keep it outside the repository. The Spark smoke test checks data integrity and compaction/Z-order operations; it configures Delta through the Delta Python package. The benchmark pipeline below uses DuckDB and Parquet.
 
 ## Reproduce the experiment
 
