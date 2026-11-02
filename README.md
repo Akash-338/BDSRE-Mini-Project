@@ -4,23 +4,19 @@ Big Data Systems and Responsible AI Engineering project by Akash Kiran Vernekar 
 
 ## Project status
 
-The Windows toolchain is reproducible and has a working smoke test. The full TPC-H ingestion and query benchmark pipeline, measured comparisons, notebook, report and demo remain project work.
+This issue implements sequential micro-batch replay of synthetic TPC-H lineitem Parquet data. It creates small files and writes an ingestion manifest with file sizes, checksums, schema, row counts, and source/output fingerprints. This is a controlled streaming simulation, not a live stream.
 
-## Planned architecture
+## Architecture
 
 ```mermaid
 flowchart LR
-    A[TPC-H synthetic data] --> B[Simulated batch ingestion]
-    B --> C[Many small files]
-    C --> D[Baseline queries]
-    C --> E[Compaction / sorting / Z-order]
-    E --> F[Optimized queries]
-    D --> G[Results and estimates]
-    F --> G
-    G --> H[Notebook and report]
+    A[Synthetic TPC-H lineitem] --> B[Micro-batch replay]
+    B --> C[Small-file Parquet layout]
+    C --> D[Baseline and optimized queries]
+    D --> E[Notebook, report and tuning playbook]
 ```
 
-The experiment uses local DuckDB for TPC-H generation and Spark with Delta Lake for table operations. Results are from a custom workload and are not official TPC-H benchmark results.
+The project is a custom local workload, not an official TPC-H benchmark. It uses generated benchmark data and does not use real personal records.
 
 ## Windows setup
 
@@ -54,12 +50,30 @@ python scripts\smoke_test.py
 
 That helper is machine-specific and is not needed on another computer. The checked-in `scripts/setup-windows.ps1` is the teammate setup path.
 
-## Planned deliverables
+## Generate and replay the data
 
-- Reproducible data generation, ingestion, tuning and benchmark scripts
-- Results notebook and measured before-and-after results
-- Tuning playbook and 3–5 page technical report
-- Data card and measured evidence for a responsible AI component
+Generate the lineitem source with the project generator:
+
+```powershell
+python scripts\generate_tpch.py --scale-factor 0.001 --output .\data\tpch-sf001-issue3
+```
+
+Replay it in batches of 100 rows:
+
+```powershell
+python scripts\ingest_small_files.py --input .\data\tpch-sf001-issue3\lineitem.parquet --output .\data\small-files-100rows-issue4 --batch-rows 100
+```
+
+The scale 0.001 sample contains 6,005 rows and produces 61 batches at 100 rows per batch. The script refuses to overwrite a non-empty output directory, checks row count, schema and row fingerprints, and writes `ingestion-manifest.json` with each file's byte size and SHA-256. Report the measured file count; do not extrapolate it to millions of files.
+
+See [the tuning playbook](docs/tuning-playbook.md) and [script guide](scripts/README.md) for evidence and limitations. The replay is not a live streaming system.
+
+## Deliverables
+
+- Reproducible data generation, ingestion, layout and benchmark scripts
+- Results notebook with before-and-after measurements
+- Tuning playbook and technical report
+- Data card and measured governance evidence
 - Three-minute in-class demo
 
-No project performance results or privacy guarantees are claimed at this stage.
+No production-scale, measured-power, or privacy guarantees are claimed.
