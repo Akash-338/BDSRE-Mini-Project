@@ -60,7 +60,11 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=5, help="measured runs per query (default: 5)")
     parser.add_argument("--threads", type=int, default=4, help="DuckDB thread count (default: 4)")
     args = parser.parse_args()
-    output = benchmark(args.input, args.output, warmups=args.warmups, repeats=args.repeats, threads=args.threads)
+    from output_refresh import refresh_json
+    if args.output.resolve() == args.input.resolve():
+        raise ValueError("benchmark output cannot replace input")
+    refresh_json(args.output, lambda stage: benchmark(args.input, stage, warmups=args.warmups, repeats=args.repeats, threads=args.threads))
+    output = args.output.resolve()
     print(json.dumps({"results": str(output), "status": "complete"}, indent=2))
 
 

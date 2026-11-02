@@ -101,7 +101,10 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True, help="new/empty directory for micro-batch files")
     parser.add_argument("--batch-rows", type=int, default=1000)
     args = parser.parse_args()
-    print(json.dumps(ingest_small_files(args.input, args.output, args.batch_rows), indent=2))
+    from output_refresh import refresh_directory
+    result = refresh_directory(args.output, lambda stage: ingest_small_files(args.input, stage, args.batch_rows),
+                               ("batch-*.parquet", "ingestion-manifest.json"), inputs=(args.input,))
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

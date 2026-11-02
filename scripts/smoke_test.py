@@ -4,6 +4,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import tempfile
+from importlib.metadata import version
+from urllib.request import urlretrieve
 
 import duckdb
 
@@ -19,9 +21,29 @@ def new_run_directory(tools_root: Path) -> Path:
     return Path(tempfile.mkdtemp(prefix="smoke-", dir=tools_root))
 
 
+def delta_classpath(root: Path) -> str:
+    """Download the pinned Delta runtime outside Spark's temporary directory."""
+    delta_version = version("delta-spark")
+    if delta_version != "3.3.2":
+        raise RuntimeError("Update the smoke test JAR dependencies for this delta-spark version")
+    artifacts = (
+        ("io/delta/delta-spark_2.12", f"delta-spark_2.12-{delta_version}.jar"),
+        ("io/delta/delta-storage", f"delta-storage-{delta_version}.jar"),
+        ("org/antlr/antlr4-runtime", "antlr4-runtime-4.9.3.jar"),
+    )
+    jars = root / "jars"
+    jars.mkdir()
+    paths = []
+    for group, name in artifacts:
+        path = jars / name
+        artifact_version = "4.9.3" if group.startswith("org/antlr/") else delta_version
+        urlretrieve(f"https://repo.maven.apache.org/maven2/{group}/{artifact_version}/{name}", path)
+        paths.append(str(path.resolve()))
+    return os.pathsep.join(paths)
+
+
 def main() -> None:
     # Import the optional Spark runtime only for the actual integration run.
-    from delta import configure_spark_with_delta_pip
     from delta.tables import DeltaTable
     from pyspark.sql import SparkSession
 
@@ -42,17 +64,19 @@ def main() -> None:
     finally:
         db.close()
 
+    classpath = delta_classpath(root)
     builder = (
         SparkSession.builder.master("local[2]")
         .appName("BDSRE-stack-smoke")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
-        .config("spark.jars.ivy", (root / "ivy").as_posix())
+        .config("spark.driver.extraClassPath", classpath)
+        .config("spark.executor.extraClassPath", classpath)
         .config("spark.sql.shuffle.partitions", "2")
         .config("spark.databricks.delta.snapshotPartitions", "2")
         .config("spark.databricks.delta.optimize.maxFileSize", "1048576")
     )
-    spark = configure_spark_with_delta_pip(builder).getOrCreate()
+    spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
     try:
         table_path = (root / "delta-table").as_posix()

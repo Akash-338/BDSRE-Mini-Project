@@ -164,17 +164,18 @@ def main() -> None:
     parser.add_argument("--direct-cash-cost-inr", type=float, default=0.0, help="externally paid project spend; defaults to user-reported zero")
     parser.add_argument("--layouts", nargs="+", help="layouts to compare (default: all available plus baseline)")
     args = parser.parse_args()
-    if args.output.expanduser().resolve().exists():
-        raise FileExistsError(f"refusing to overwrite existing results: {args.output.resolve()}")
+    if args.output.expanduser().resolve() == args.input.expanduser().resolve():
+        raise ValueError("energy output cannot replace input")
     source = json.loads(args.input.expanduser().resolve().read_text(encoding="utf-8"))
     result = estimate(source, assumed_system_watts=args.assumed_system_watts,
                       electricity_rate_inr_per_kwh=args.electricity_rate_inr_per_kwh,
                       direct_cash_cost_inr=args.direct_cash_cost_inr, layouts=args.layouts)
     destination = args.output.expanduser().resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with destination.open("x", encoding="utf-8", newline="\n") as stream:
-        json.dump(result, stream, indent=2, sort_keys=True)
-        stream.write("\n")
+    from output_refresh import refresh_json
+    def write(stage):
+        stage.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    refresh_json(destination, write)
     print(f"Saved estimates to {destination}")
     for layout, values in result["layouts"].items():
         total_queries = sum(query["assumed_query_energy_wh"] for query in values["queries"].values())

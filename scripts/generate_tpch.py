@@ -93,7 +93,9 @@ def main() -> None:
         / "cache/duckdb-extensions",
     )
     args = parser.parse_args()
-    manifest = generate(args.scale_factor, args.output, args.extension_dir)
+    from output_refresh import refresh_directory
+    manifest = refresh_directory(args.output, lambda stage: generate(args.scale_factor, stage, args.extension_dir),
+                                 ("lineitem.parquet", "manifest.json"), inputs=(args.extension_dir,))
     print(json.dumps(manifest, indent=2))
 
 

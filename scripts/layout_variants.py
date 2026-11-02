@@ -179,8 +179,21 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--threads", type=int, default=4)
     args = parser.parse_args()
-    payload = build_layouts(args.input, args.output_root, args.results, file_size_bytes=args.file_size_bytes,
-                            warmups=args.warmups, repeats=args.repeats, threads=args.threads)
+    from output_refresh import refresh_directory, refresh_json
+    output_root = args.output_root.expanduser().resolve()
+    results = args.results.expanduser().resolve()
+    source = args.input.expanduser().resolve()
+    if results == output_root or output_root in results.parents or results == source:
+        raise ValueError("results JSON must be outside the layout output and cannot replace input")
+    def build(stage):
+        return build_layouts(args.input, stage, stage.parent / "results.json", file_size_bytes=args.file_size_bytes,
+                             warmups=args.warmups, repeats=args.repeats, threads=args.threads)
+    payload = refresh_directory(output_root, build,
+                                ("compacted/part-*.parquet", "sorted/part-*.parquet", "z_ordered/part-*.parquet"),
+                                inputs=(args.input,))
+    def write(stage):
+        stage.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    refresh_json(results, write)
     for name, layout in payload["layouts"].items():
         query_medians = [query["summary_seconds"]["median"] for query in layout["query_benchmarks"].values()]
         print(f"{name}: {layout['file_summary']['file_count']} files, {layout['file_summary']['total_bytes']} bytes, "

@@ -1,6 +1,6 @@
 # Pipeline scripts
 
-Run commands from the repository root with the project's Python 3.12 environment active. Each output path should be new.
+Run commands from the repository root with the project's Python 3.12 environment active. The generation, ingestion, benchmark, layout, energy, and governance commands refresh their generated outputs when rerun; preserve a copy elsewhere if you need earlier results.
 
 | Script | Purpose |
 |---|---|

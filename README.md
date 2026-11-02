@@ -48,7 +48,7 @@ Choose a different `ToolsRoot` if needed. Keep it outside the repository. The Sp
 
 ## Reproduce the experiment
 
-Run these commands from the repository root using the activated environment. Use fresh output paths; scripts do not overwrite existing experiment outputs.
+Run these commands from the repository root using the activated environment. Repeating these commands refreshes the generated artifacts at the same paths after each stage succeeds; save a separate copy first if you need to retain earlier results.
 
 ```powershell
 python scripts\generate_tpch.py --scale-factor 0.001 --output data\tpch-sf001-issue3

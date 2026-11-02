@@ -222,14 +222,15 @@ def main() -> int:
     parser.add_argument("--ingestion-manifest", type=Path, help="optional ingestion-manifest.json for lineage and file checksums")
     parser.add_argument("--output", required=True, type=Path, help="new audit JSON path")
     args = parser.parse_args()
-    if args.output.expanduser().resolve().exists():
-        raise FileExistsError(f"refusing to overwrite existing audit: {args.output.resolve()}")
+    if args.output.expanduser().resolve() in {p.expanduser().resolve() for p in (args.input, args.provenance, args.ingestion_manifest) if p}:
+        raise ValueError("audit output cannot replace input")
     result = audit_dataset(args.input, args.provenance, args.ingestion_manifest)
     destination = args.output.expanduser().resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with destination.open("x", encoding="utf-8", newline="\n") as stream:
-        json.dump(result, stream, indent=2, sort_keys=True)
-        stream.write("\n")
+    from output_refresh import refresh_json
+    def write(stage):
+        stage.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    refresh_json(destination, write)
     print(json.dumps(result["measured"], indent=2, sort_keys=True))
     print(f"Audit report: {destination}")
     return 0 if result["measured"]["overall_passed"] else 1
