@@ -1,3 +1,17 @@
 # Pipeline scripts
 
-Data generation, simulated ingestion, tuning and benchmarking scripts will be added here.
+Run commands from the repository root with the project's Python 3.12 environment active. Each output path should be new.
+
+| Script | Purpose |
+|---|---|
+| `generate_tpch.py` | Generate synthetic TPC-H `lineitem` Parquet and a provenance manifest. |
+| `ingest_small_files.py` | Replay lineitem rows in sequential micro-batches and write a checksum manifest. |
+| `benchmark_queries.py` | Measure baseline full-scan and filter workloads with raw repeated timings. |
+| `compact_parquet.py` | Compact one Parquet source and compare before/after query results and timings. |
+| `layout_variants.py` | Compare compacted, sorted, and custom Morton-ordered output layouts. |
+| `estimate_energy_cost.py` | Estimate energy and tariff cost from timings and explicit assumptions. |
+| `governance_check.py` | Check an allowlisted schema, generator provenance, row count, and optional ingestion checksums. |
+| `analyze_results.py` | Validate benchmark, energy, and audit JSON consistency for the results notebook. |
+| `smoke_test.py` | Exercise the Spark/Delta setup on a tiny synthetic dataset; creates a unique run directory and configures Delta through the Delta Python package. |
+
+Use `python scripts/<name>.py --help` for arguments. The governance audit is a narrow control, not a privacy guarantee. Generated Parquet files and result JSON belong in the ignored `data/` directory.
