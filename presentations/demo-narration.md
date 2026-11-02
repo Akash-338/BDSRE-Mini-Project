@@ -2,6 +2,8 @@
 
 The accompanying MP4 is a timed slide video (nine slides at 20 seconds each) with computer-generated English narration. The synthetic voice does not represent either teammate. Use this script to record your own voice-over if you prefer; play the final copy on another device before class.
 
+The narration and video describe the historical recorded run. Current local JSON can change when the experiment commands are rerun; do not present the historical timings as the latest measurements without checking the current results. The benchmark uses DuckDB and Parquet; Spark/Delta is a separate environment smoke test.
+
 | Time | Speaker | Script |
 |---|---|---|
 | 0:00-0:20 | Akash | We studied a common storage problem: streaming-style ingestion can create many tiny files, adding metadata and scan overhead. We used a small synthetic TPC-H lineitem sample so the pipeline runs locally without paid infrastructure. This is a measured prototype, not a distributed-scale claim. |

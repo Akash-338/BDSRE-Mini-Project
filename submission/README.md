@@ -8,4 +8,4 @@ Validation on the assembled snapshot: 31 unit tests passed in a clean Python 3.1
 
 This archive is prepared for the team to review. It has not been uploaded through the course form. The latest presentation notice says the video will be evaluated in class and need not be in the ZIP; it is included here to satisfy the broader Option A checklist. Submit one team ZIP through the course form and retain its confirmation before 11 November 2026 EOD.
 
-The ZIP is the previously validated snapshot; subsequent PR integrations on main may differ from its contents.
+The ZIP is the previously validated snapshot, not a live package of the current repository. Current architecture uses DuckDB/Parquet for the benchmark, staged refreshes for the documented pipeline commands, and an independent Spark/Delta smoke test. Later source and documentation changes on `main`, including refresh behavior, are not necessarily reflected in the ZIP; rebuild and revalidate the archive before submitting it as the current version.

@@ -26,7 +26,7 @@ This schema/provenance check cannot establish that every value is non-personal, 
 
 ## Collection, use, and sharing
 
-The table is generated locally and is used only for this course experiment. Input Parquet data and full local benchmark outputs live under the Git-ignored `data/` directory and are regenerated with the project scripts. The repository contains scripts and documentation rather than the generated dataset. Do not publish a TPC-derived performance result as an official TPC-H result.
+The table is generated locally and is used only for this course experiment. The generator writes a source Parquet file and provenance manifest; ingestion creates batch Parquet files and a checksum manifest; layout and governance stages consume these artifacts. Input Parquet data and full local benchmark outputs live under the Git-ignored `data/` directory and are regenerated with the project scripts. Rerunning the documented commands refreshes generated outputs at their selected paths; retain a separate copy if an earlier dataset or audit must be preserved. The repository contains scripts and documentation rather than the generated dataset. Do not publish a TPC-derived performance result as an official TPC-H result.
 
 ## Limitations
 

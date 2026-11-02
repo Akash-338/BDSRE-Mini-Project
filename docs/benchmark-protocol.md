@@ -26,4 +26,4 @@ Every JSON result records DuckDB and Python versions, OS, processor string, logi
 python scripts\benchmark_queries.py --input .\data\small-files-100rows-issue4 --output .\data\benchmark-baseline.json --warmups 1 --repeats 5 --threads 4
 ```
 
-The results path must not already exist. Raw data and measurements are local under the ignored `data/` directory; regenerate the source with the documented TPC-H generator when needed. These are local custom-workload measurements, not official TPC-H benchmark results.
+The command replaces an existing results JSON after the new benchmark completes. Save a copy under another name first if you need the old measurements. Raw data and measurements are local under the ignored `data/` directory; regenerate the source with the documented TPC-H generator when needed. The baseline results are independent of the baseline measurements embedded in the side-by-side layout JSON. These are local custom-workload measurements, not official TPC-H benchmark results.

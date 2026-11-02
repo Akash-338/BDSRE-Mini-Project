@@ -8,7 +8,7 @@ This project measures how many small Parquet files affect local query latency an
 
 ```mermaid
 flowchart LR
-    A[DuckDB TPC-H lineitem generator] --> B[100-row sequential micro-batches]
+    A[DuckDB TPC-H lineitem generator and manifest] --> B[100-row sequential micro-batches and checksums]
     B --> C[61-file Parquet baseline]
     C --> D[Baseline query timings]
     C --> E[Compaction]
@@ -19,12 +19,14 @@ flowchart LR
     F --> H
     G --> H
     H --> I[Energy and cost estimates]
-    C --> J[Schema, provenance, and checksum audit]
+    A --> J[Schema, provenance, and checksum audit]
+    C --> J
     H --> K[Results notebook and technical report]
     J --> K
+    L[Spark and Delta smoke test] --> M[Independent environment check]
 ```
 
-DuckDB runs the local Parquet queries. Its TPC-H extension generates the synthetic `lineitem` sample. DuckDB does not provide native Z-ordering here: the Morton variant interleaves keys for `l_shipdate` and `l_returnflag` and is described as a custom ordering. The study is derived from TPC-H and is not comparable to official TPC-H benchmark results.
+DuckDB runs the local Parquet queries. Its TPC-H extension generates the synthetic `lineitem` sample. Generation, ingestion, baseline benchmarking, the three-layout comparison, energy estimation, and governance are separate command-line stages; the notebook validates and visualizes their JSON outputs. The optional compaction-only command produces a separate comparison. Spark and Delta are used only for an independent environment smoke test, not for the DuckDB benchmark. DuckDB does not provide native Z-ordering here: the Morton variant interleaves keys for `l_shipdate` and `l_returnflag` and is described as a custom ordering. The study is derived from TPC-H and is not comparable to official TPC-H benchmark results.
 
 ## Prerequisites and Windows setup
 
@@ -32,7 +34,7 @@ DuckDB runs the local Parquet queries. Its TPC-H extension generates the synthet
 - About 1 GB free disk space for the sample and layout variants.
 - Network access for the first dependency install and the DuckDB TPC-H extension download.
 
-The setup script puts the virtual environment, caches, and temporary Spark files under a separate tools directory. From the repository root in PowerShell:
+The setup script puts the virtual environment, caches, and temporary Spark files under a separate tools directory. It uses the first `python` and `java` on `PATH`, which must be Python 3.12 and Java 17. If a Python 3.12 tools environment already exists, activate it first; put Java 17 on `PATH` before running setup. From the repository root in PowerShell:
 
 ```powershell
 $Tools = 'D:\BDSRE-Tools'
@@ -44,11 +46,11 @@ python -m unittest discover -s tests -v
 python scripts\smoke_test.py
 ```
 
-Choose a different `ToolsRoot` if needed. Keep it outside the repository. The Spark smoke test checks data integrity and compaction/Z-order operations; it configures Delta through the Delta Python package. The benchmark pipeline below uses DuckDB and Parquet.
+Choose a different `ToolsRoot` if needed. Keep it outside the repository. The Spark smoke test checks data integrity and Delta compaction/Z-order operations. It downloads the pinned Delta runtime JARs into a unique smoke-run directory and loads them on Spark's classpath; it needs network access. The benchmark pipeline below uses DuckDB and Parquet.
 
 ## Reproduce the experiment
 
-Run these commands from the repository root using the activated environment. Repeating these commands refreshes the generated artifacts at the same paths after each stage succeeds; save a separate copy first if you need to retain earlier results.
+Run each command from the repository root using the activated environment. Repeating these commands refreshes the generated artifacts at the same paths after each stage succeeds; save a separate copy first if you need to retain earlier results. Stop if a stage fails before running dependent stages; directory and JSON publication are separate operations, so an interrupted update can require rerunning the stage.
 
 ```powershell
 python scripts\generate_tpch.py --scale-factor 0.001 --output data\tpch-sf001-issue3
@@ -78,4 +80,4 @@ Generated Parquet data, raw JSON, executed notebooks, and virtual environments a
 
 ## Results and limits
 
-The recorded local run used 6,005 rows, 61 baseline files, one warm-up and five measured repeats per query, DuckDB 2.0.0, Python 3.12, and four query threads. Results and one-time layout costs are in `docs/tuning-playbook.md`. Energy uses an assumed 50 W average system draw and an illustrative INR 8/kWh tariff; no power meter was used. Direct project cash spending was reported as INR 0. The measurements reflect warm local file access, not a cluster, cold-cache behavior, or millions of files.
+The historical local run used 6,005 rows, 61 baseline files, one warm-up and five measured repeats per query, DuckDB 2.0.0, Python 3.12, and four query threads. Historical results and one-time layout costs are in `docs/tuning-playbook.md`; reruns replace local JSON and may produce different timings. Energy uses an assumed 50 W average system draw and an illustrative INR 8/kWh tariff; no power meter was used. Direct project cash spending was reported as INR 0. The measurements reflect warm local file access, not a cluster, cold-cache behavior, or millions of files.

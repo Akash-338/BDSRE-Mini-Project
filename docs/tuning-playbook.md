@@ -1,6 +1,6 @@
 # Operational Tuning Playbook
 
-This playbook reproduces a small local comparison of Parquet layouts for the synthetic TPC-H `lineitem` workload. Commands use PowerShell from the repository root and assume the project Python environment is active. Generated data and raw JSON go under the ignored `data/` directory; each script requires new output paths.
+This playbook reproduces a small local comparison of Parquet layouts for the synthetic TPC-H `lineitem` workload. Commands use PowerShell from the repository root and assume the project Python environment is active. Generated data and raw JSON go under the ignored `data/` directory. The documented pipeline commands refresh generated artifacts at the same paths; use separate paths or save copies to retain prior results.
 
 The BDSRE Small Files Layout Study is derived from the TPC-H and as such is not comparable to published TPC-H results, as the BDSRE Small Files Layout Study results do not comply with the TPC-H Specification.
 
@@ -60,7 +60,7 @@ python scripts/layout_variants.py --input data/small-files-100rows-issue4 --outp
 
 The sorted layout orders by `l_shipdate, l_returnflag, l_orderkey, l_linenumber`, matching the workload's date and flag predicates and then making ties deterministic. DuckDB does not provide a native Z-order table command here. The custom `z_ordered` variant interleaves a 32-bit day number and a return-flag rank into a Morton key; it is an experiment over two columns, not native or general-purpose Z-ordering. Both transformations build separate copies and check row fingerprints and all query output hashes.
 
-DuckDB's requested `FILE_SIZE_BYTES` target is approximate. Use actual recorded sizes. Keep an independent baseline for every run; use fresh paths because commands refuse to overwrite prior outputs.
+DuckDB's requested `FILE_SIZE_BYTES` target is approximate. Use actual recorded sizes. Keep the baseline input unchanged while comparing layouts, and save each result set separately if comparing runs. The layout directory and JSON are published separately; rerun the stage if publication is interrupted.
 
 ## Validate governance and estimate energy
 
@@ -78,9 +78,9 @@ python scripts/estimate_energy_cost.py --input data/layout-variants-issue7.json 
 
 The formula is `Wh = elapsed_seconds * assumed_watts / 3600`; hypothetical rupee cost is `kWh * supplied_rate`. Direct project cash spend is reported separately (₹0 according to the team's stated constraint). Replace 50 W and ₹8/kWh with justifiable scenario assumptions for the report. Include one-time optimization duration/energy and query-specific break-even counts. A null break-even means that query did not save energy under the chosen assumption.
 
-## Recorded sample results
+## Historical sample results
 
-The following values are from one local run with 1 warm-up and 5 timed repeats per query, DuckDB 2.0.0, 4 query threads, Python 3.12.10, Windows 11, and the local warm filesystem cache. The input was 6,005 rows across 61 files and 404,691 bytes. The CPU is the team's Ryzen 7 7840HS laptop with 15.2 GB reported RAM. These are local measurements, not a distributed benchmark.
+The following values are from an earlier local run, not necessarily the current JSON files, with 1 warm-up and 5 timed repeats per query, DuckDB 2.0.0, 4 query threads, Python 3.12.10, Windows 11, and the local warm filesystem cache. The input was 6,005 rows across 61 files and 404,691 bytes. The CPU is the team's Ryzen 7 7840HS laptop with 15.2 GB reported RAM. These are local measurements, not a distributed benchmark.
 
 | Layout | Files | Bytes | Build seconds | Full scan median (ms) | Single filter median (ms) | Multi-filter aggregation median (ms) |
 |---|---:|---:|---:|---:|---:|---:|
@@ -91,7 +91,7 @@ The following values are from one local run with 1 warm-up and 5 timed repeats p
 
 Compaction reduced the file count and all three query medians in this run. Sorting and Morton ordering had mixed query-level results relative to compaction: the full scan was lower, but both selective-query medians were higher. This sample does not support a general claim that sorting or Morton ordering improves selective queries.
 
-With the illustrative 50 W and ₹8/kWh assumptions, one-time optimization energy was 0.000594 Wh compacted, 0.000783 Wh sorted, and 0.001697 Wh Morton-ordered. These are derived estimates, not meter readings. The raw JSON contains the per-query estimates and calculated break-even counts; local files are `data/layout-variants-issue7.json`, `data/energy-estimates-issue8.json`, and `data/governance-issue9.json`.
+With the illustrative 50 W and ₹8/kWh assumptions, one-time optimization energy was 0.000594 Wh compacted, 0.000783 Wh sorted, and 0.001697 Wh Morton-ordered. These are derived estimates, not meter readings. The current local JSON files are `data/layout-variants-issue7.json`, `data/energy-estimates-issue8.json`, and `data/governance-issue9.json`; they may describe a later run and different timings.
 
 ## Run the notebook
 
@@ -104,11 +104,11 @@ The notebook checks that layout hashes match, energy medians match benchmark med
 
 ## Troubleshooting and limits
 
-- **Output already exists:** select a fresh experiment name; do not overwrite or mix older measurements.
+- **Output already exists:** pipeline commands refresh their generated outputs. Save old results to a different directory first if you need them; do not mix measurements from different runs. `analyze_results.py` still requires a new output path.
 - **No Parquet files:** verify `--input` points to the source Parquet file or the intended micro-batch directory.
 - **DuckDB extension unavailable:** run the generator with network access on first use or check the configured extension cache; later queries only need DuckDB.
 - **Governance check fails:** read the audit JSON's `findings`, schema failed count, provenance row count, and source/file checksum results. A moved source can still be verified by an identical SHA-256 in the generator output directory.
-- **Unexpected timing changes:** report raw runs, thread count, platform, warm-up count and cache policy. Rerun the whole comparison with fresh outputs; do not cherry-pick the fastest run.
+- **Unexpected timing changes:** report raw runs, thread count, platform, warm-up count and cache policy. Rerun the whole comparison and preserve separate outputs when comparing runs; do not cherry-pick the fastest run.
 - **No energy savings:** report the estimated result and break-even as null; do not force an optimization recommendation.
 
 The experiment does not flush OS caches, measure watts, price a cloud service, model a cluster, or prove privacy. The schema allowlist cannot detect sensitive meaning in field values. Review the [data card](data-card.md) and the [TPC-H license](https://www.tpc.org/TPC_Documents_Current_Versions/txt/EULA_v2.2.0.txt) before redistributing TPC-derived materials.

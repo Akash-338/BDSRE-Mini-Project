@@ -4,6 +4,8 @@ Open `results_analysis.ipynb` with Jupyter and execute it from the repository ro
 
 Generate the artifacts using the commands in the notebook's first cell. The notebook does not fabricate substitute results. A fresh checkout must first generate data and run the benchmark/estimate/governance commands; no benchmark output is committed. Install the optional plotting dependencies with `python -m pip install -r requirements-notebook.txt`.
 
+The documented pipeline refreshes its generated outputs at the same paths when rerun. Run layout comparison, energy estimation, and governance in sequence before executing the notebook, and retain copies elsewhere if historical results are needed. A standalone baseline JSON and the independent Spark/Delta smoke test are not notebook inputs.
+
 For headless validation from the repository root:
 
 ```powershell
