@@ -14,7 +14,7 @@ $javaPath = $javaCommand.Source
 if (-not $javaPath) { $javaPath = $javaCommand.Definition }
 $javaPath = (Resolve-Path -LiteralPath $javaPath).Path
 $javaHome = Split-Path (Split-Path $javaPath -Parent) -Parent
-$version = & $python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
+$version = & $python -c 'import sys; print(sys.version_info.major, sys.version_info.minor, sep=chr(46))'
 if ($version -ne '3.12') { throw "Python 3.12 is required; found $version at $python" }
 $javaVersionOutput = & $javaPath -version 2>&1
 $javaVersion = ($javaVersionOutput | Where-Object { $_ -match 'version "17\.' } | Select-Object -First 1) -join ''
